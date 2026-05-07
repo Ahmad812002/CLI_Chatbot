@@ -17,23 +17,27 @@ client = OpenAI(
 
 user_input = ""
 user_for_role_input = input("Welcome to the CLI Chatbot! in which role do you need me to assist you ?\n")
-history = []
+history =  []
 
-# sys.agrv is a list of command-line arguments passed to the script. sys.argv[0] is the script name, and sys.argv[1] is the first argument. 
-# In this case, it is expected to be the path to a text file
+
+messages = [{"role": "system", "content": user_for_role_input}]
+
 while user_input.lower() not in ["exit", "quit"]:
     
     user_input = input("You: ")
 
+    messages.append({"role": "user", "content": user_input})
     try:
 
         response = client.chat.completions.create(
-            model="gpt-oss-120b",
-            messages=[
-                { "role": "system", "content": user_for_role_input },
-                { "role": "user", "content": user_input },
-            ],
+            model = "gpt-oss-120b",
+            messages = messages,
+           reasoning_effort = "high",
+           verbosity = "low",
+           web_search_options = {"enabled": True},
+
         )
+
     except openai.APIError as e:
         print(f"API Error: {e}")
         continue
@@ -43,7 +47,7 @@ while user_input.lower() not in ["exit", "quit"]:
     except openai.APIConnectionError as e:
         print(f"API Connection Error: {e}")
         continue
-    except openai.InvalidRequestError as e:
+    except openai.BadRequestError as e:
         print(f"Invalid Request Error (Bad Request): {e}")
         continue
     except openai.InternalServerError as e:
@@ -56,10 +60,11 @@ while user_input.lower() not in ["exit", "quit"]:
         print(f"Authentication Error: {e}")
         continue
     
-    message = response.choices[0].message.content
-    print(f"Assistant: {message}")
+    reply = response.choices[0].message.content
+    print(f"Ai: {reply}")
 
-    history.append(response.choices[0].message)
+    messages.append({"role": "assistant", "content": reply})
+
     continue
 
 print("history: ", history)
