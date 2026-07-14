@@ -9,18 +9,14 @@ import PyPDF2
 
 load_dotenv()
 
-try:       
-    chroma_client = chromadb.CloudClient(
-        tenant='f4693080-0a9c-4c15-b7b0-8596835296b3',
-        database='ahmad_database',
-        api_key=os.getenv('CHROMA_API_KEY')
-    )
-    collection = chroma_client.get_collection(name="embeddings")
-except Exception as e:
-    print(f"Error occurred while connecting to ChromaDB: {e}")
-    
+#try:       
+    #chroma_client = chromadb.CloudClient(
+        #database details
+    #)
+    #collection = chroma_client.get_collection(name="")
+#except Exception as e:
+    #print(f"Error occurred while connecting to ChromaDB: {e}")
 
-text = "This is a sample text to generate embedding."
 
 # query_vector = get_embedding(user_input)
 # Then you compare this query vector against every stored document vector and rank by similarity score
