@@ -4,74 +4,82 @@ import json
 from config.client import initialize_client
 import openai
 from config.prompts import format_job_scorer_prompt
-from models import cover_letter_generator
+from models import cover_letter_generator, chat_bot
 
 ids = embeddings_collection.get()["ids"]
 
 client = initialize_client()
 
 messages_arr = []
+last_reply = ""
 
 
 # Handleing job seeker mode chunk it into smaller pieces, get the embedding of each chunk and search for similar documents in the database,.    
 def job_scorer_mode():
     
-    global messages_arr
+    global messages_arr, last_reply
+    if not messages_arr:
+        job_preferences = update_or_add_preferences()
+        print("Paste Job description to tell if it's match your career or not or ask me about your career fit score for a job description, or type 'exit' to quit:\n")
+    else:
+        job_preferences = get_prefrences_records()
 
-    last_reply = ""
-
-    job_preferences = update_or_add_preferences()
-
-    print("Paste Job description to tell if it's match your career or not")
-    job_description = input("You: ").strip()
-    if job_description.lower() in ["exit", "quit"]:
-        return
-    if len(job_description.strip()) < 50:
-        print("Please enter a valid job description.")
-        return
+    while True:
         
-    messages_arr.append({"role": "user", "content": job_description})
-    # Case 3 : If the user input is a job description, get the embedding and search for similar documents then attacht them to the LLM.
-    profile_chunks = process_job_description(job_description)
-    job_scorer_formated_result = format_job_scorer_prompt(profile_chunks, job_preferences, job_description)
-    try:
-         response = client.chat.completions.create(
-        model="gpt-oss-120b",
-        messages= [job_scorer_formated_result] + messages_arr[-10:],
-        max_tokens=1024,
-        temperature=0 # For a job fit scorer, reliable scoring, temperature (creativity) should be low
-        )
-    except openai.APIError as e:
-        print(f"API Error: {e}")
-        return
-    except openai.APITimeoutError as e:
-        print(f"Timeout Error: {e}")
-        return
-    except openai.APIConnectionError as e:
-        print(f"API Connection Error: {e}")
-        return
-    except openai.BadRequestError as e:
-        print(f"Invalid Request Error (Bad Request): {e}")
-        return
-    except openai.InternalServerError as e:
-        print(f"Internal Server Error: {e}")
-        return
-    except openai.RateLimitError as e:
-        print(f"Rate Limit Error: {e}")
-        return
-    except openai.AuthenticationError as e:
-        print(f"Authentication Error: {e}")
-        return
-    last_reply = response.choices[0].message.content
-    format_job_scorer_json(last_reply)
+        user_input = input("You: ").strip()
+        if user_input.lower() in ["exit", "quit"]:
+            return
+        if len(user_input.strip()) < 50:
+            # print("Rendering to chat mode...")
+            # chat_bot.chat_bot_mode(user_input)
+            print("Please provide a valid job description")
+            continue
+        if not user_input:
+            continue
+            
+        messages_arr.append({"role": "user", "content": user_input})
+        # Case 3 : If the user input is a job description, get the embedding and search for similar documents then attacht them to the LLM.
+        profile_chunks = process_job_description(user_input)
+        job_scorer_formated_result = format_job_scorer_prompt(profile_chunks, job_preferences, user_input)
+        try:
+            response = client.chat.completions.create(
+            model="gpt-oss-120b",
+            messages= [job_scorer_formated_result] + messages_arr[-10:],
+            max_tokens=1024,
+            temperature=0.0 # For a job fit scorer, reliable scoring, temperature (creativity) should be low
+            )
+        except openai.APIError as e:
+            print(f"API Error: {e}")
+            return
+        except openai.APITimeoutError as e:
+            print(f"Timeout Error: {e}")
+            return
+        except openai.APIConnectionError as e:
+            print(f"API Connection Error: {e}")
+            return
+        except openai.BadRequestError as e:
+            print(f"Invalid Request Error (Bad Request): {e}")
+            return
+        except openai.InternalServerError as e:
+            print(f"Internal Server Error: {e}")
+            return
+        except openai.RateLimitError as e:
+            print(f"Rate Limit Error: {e}")
+            return
+        except openai.AuthenticationError as e:
+            print(f"Authentication Error: {e}")
+            return
+        last_reply = response.choices[0].message.content
+        format_job_scorer_json(last_reply)
 
-    messages_arr.append({"role": "assistant", "content": last_reply})
+        messages_arr.append({"role": "assistant", "content": last_reply})
+        if(last_reply in "Sorry! there is no job description please enter a valid one or i couldn't answer you."):
+            continue
 
-    print("Would you like to generate a cover letter for this job? (yes/no)\n")
-    user_input = input("You: ")
-    if user_input.lower() == "yes":
-        cover_letter_generator.generate_cover_letter(profile_chunks, job_description, last_reply)
-
+        print("\n\nWould you like to generate a cover letter for this job? (yes/no)\n")
+        user_input = input("You: ").strip()
+        if user_input.lower() == "yes":
+            cover_letter_generator.generate_cover_letter(profile_chunks, user_input, last_reply)
 
 def update_or_add_preferences():
     global ids
@@ -116,7 +124,7 @@ def update_or_add_preferences():
 def format_job_scorer_json(ai_reply):
     try:
         result = json.loads(ai_reply)
-
+        print(f"\nScore Category: {result['fit_category']}")
         print(f"\nJob Fit Score: {result['fit_score']}/100")
         print(f"\nMatching Points:")
         for point in result['matching_points']:

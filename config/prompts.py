@@ -15,11 +15,55 @@ def format_prompt_chat_bot(chunks):
 
     return ({"role": "system", "content": system})
 
+# Handleing prompt for job_seeker mode
+def format_job_scorer_prompt(chunks, preferences, job_description):    
+    # next update plan to use an API text detictor to detect the user's input.
+
+    if chunks:
+        candidate_section = f"Candidate Profile:\n{chunks}"
+    else:
+        candidate_section = "There is no context available, please answer based on your knowledge."
+    system_content = f"""
+        You are an expert career coach, and interview prep partner use these info to help the user know a job score and if it's matches his career or not.
+        Job description: {job_description}.
+
+        {candidate_section}.
+
+        User's preferences: {preferences}.
+
+        
+        Scoring rubric:
+        90-100: meets all requirements, no significant gaps.
+        70-89:  meets most requirements, 1-2 minor gaps.
+        50-69:  meets core requirements, notable gaps exist.
+        below 50: significant misalignment.
+
+        Instructions:
+            First analyze the match in detail.
+            Then assign a score based only on your analysis above.
+            
+        Respond only with JSON in this exact structure:
+        {{
+            "fit_category": "<string>",
+            "fit_score": <integer 0-100>,
+            "matching_points": ["<string>"],
+            "gaps": ["<string>"],
+            "reasoning": "<string>"
+        }}
+        Rules:
+        - Only list a skill as a match if it is explicitly present in the candidate profile. 
+        - Do not infer related or adjacent skills.
+        - If there is no answer or the input is not job description or you can't handle the input just answer with this respond:
+            Sorry! there is no job description please enter a valid one or i couldn't answer you.
+        """
+    # Here we are returning the system message which will be used as the first message in the conversation, it will set the tone and the context for the rest of the conversation, it will also help the model to understand the user's role and how to respond accordingly.
+    return ({"role": "system", "content": system_content})
+
 # Handling cover letter prompt
 def cover_letter_prompt_format(profile_candidate, job_description, job_scorer_result):
 
     system = f"""
-        You are cover letter generator.
+        You are a cover letter generator.
 
         {{
             You will receive profile user: {profile_candidate}, and job description: {job_description}.
@@ -44,43 +88,17 @@ def cover_letter_prompt_format(profile_candidate, job_description, job_scorer_re
         }}
 
         Rules:
+        - Critical: Only mention skills, technologies, and tools that are explicitly listed in the profile candidate. Never infer, assume, or add adjacent technologies even if they are commonly associated with a listed skill.
         - Do not start with generic phrases like "I am writing to apply for"
         - Start the opening with something specific about the user or the role
-        - The total cover letter must not exceed 350 words.
-        - Each paragraph should be 2 to 4 sentences maximum. 
+        - The total cover letter must not exceed 500 words.
+        - Each paragraph should be 2 to 5 sentences maximum. 
         - Tone structure: professional, confident, and honest tone
+        - If you don't have enough information how the user solving the gaps, 
+            just write a willing to learn and mention a project that the user has already worked on, 
+            make sure the project details are worked on by the user and is not mentioned in the above cover letter.
     """
 
     return ({"role": "system", "content": system})
-
-# Handleing prompt for job_seeker mode
-def format_job_scorer_prompt(chunks, preferences, job_description):    
-    # next update plan to use an API text detictor to detect the user's input.
-
-    if chunks:
-        candidate_section = f"Candidate Profile:\n{chunks}"
-    else:
-        candidate_section = "There is no context available, please answer based on your knowledge."
-    system_content = f"""
-        You are an expert career coach, resume writer, and interview prep partner use these info to help the user find a job that matches their preferences and his career.
-        Job description: {job_description}.
-
-        {candidate_section}.
-
-        User's preferences: {preferences}.
-
-        Respond only with JSON in this exact structure:
-        {{
-            "fit_score": <integer 0-100>,
-            "matching_points": ["<string>"],
-            "gaps": ["<string>"],
-            "reasoning": "<string>"
-        }}
-        if there is no answer or the input is not job description or you can't handle the input just answer with this respond:
-        Sorry! there is no job description please enter a valid one or i couldn't answer you.
-        """
-    # Here we are returning the system message which will be used as the first message in the conversation, it will set the tone and the context for the rest of the conversation, it will also help the model to understand the user's role and how to respond accordingly.
-    return ({"role": "system", "content": system_content})
-
 
 
