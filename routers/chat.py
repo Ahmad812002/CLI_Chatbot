@@ -1,12 +1,16 @@
+from anthropic import BaseModel
 import openai
 import os
+from fastapi import APIRouter
 from data_access.embeddings import get_embedding, search_embedding
 from config.client import initialize_client
-from config.prompts import format_prompt_chat_bot
-from data_access.document_reader import process_document
+from config.prompts import chat_bot_prompt
+from data_access.document_reader import add_embedding
 
 # Initialize the OpenAI client with the API key and base URL for OpenRouter.
 client = initialize_client()
+
+router = APIRouter()
 
 doc_id = 0
 user_input = ""
@@ -14,8 +18,13 @@ job_preferences = ""
 profile_chunks = ""
 messages_arr = []
 
+class ChatRequest(BaseModel):
+    message: str
+
+
 # Handleing assistant mode.
-def chat_bot_mode():
+@router.post("/chatgpt")
+def chat_bot_mode(request: ChatRequest):
     chunks = ""
     global doc_id, user_input, messages_arr
 
@@ -30,7 +39,7 @@ def chat_bot_mode():
         try:
             # Case 1: If the user input is a file path, read the document and chunk it into smaller pieces, then store the embeddings of each chunk in the database.
             if user_input.endswith(('.pdf', '.txt', '.docx', '.md')) and os.path.exists(user_input):
-                process_document(user_input, doc_id)
+                add_embedding(user_input, doc_id)
                 continue
             # Case 2: If the user input is not a file path, get the embedding of the user input and search for similar documents in the database, then join the similar documents with each other and attacht them to the LLM.
             else:
@@ -44,7 +53,7 @@ def chat_bot_mode():
             #LLM part
             response = client.chat.completions.create(
                 model = "gpt-oss-120b",
-                messages = [format_prompt_chat_bot(chunks)] + messages_arr[-10:],
+                messages = [chat_bot_prompt(chunks)] + messages_arr[-10:],
                 temperature=1.0, # This is to make the model's response more creative and less deterministic, it will also help the model to provide more diverse responses and avoid repeating the same response.
                 reasoning_effort = "high", # This is to make the model put more effort into reasoning and providing a more accurate and relevant response, it will take more time to generate a response but it will be worth it.
                 verbosity = "low", # This is to make the model's response more concise and to the point, it will not provide unnecessary details or explanations.
@@ -75,5 +84,8 @@ def chat_bot_mode():
             continue
         # Never forget to append the assistant's reply back into messages otherwise the model forgets what it just said on the next turn.
         reply = response.choices[0].message.content
+        if reply is None:
+            reply = "Sorry, I could not generate a response. This is not a general chat bot, " \
+            "it's a specialized chat bot if your answer is not related to the data i have i can't response."
         print(f"Ai: {reply}")
         messages_arr.append({"role": "assistant", "content": reply})

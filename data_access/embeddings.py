@@ -1,7 +1,7 @@
 from nomic import embed
 import numpy as np
 from dotenv import load_dotenv
-from data_access.db import embeddings_collection
+from data_access.db import get_embeddings_collection
 
 load_dotenv()
 
@@ -36,7 +36,7 @@ def get_embedding(text):
 def store_embedding(doc_id, text, embedding, source):
     
     try:
-        embeddings_collection.add(
+        get_embeddings_collection().add(
             ids = [doc_id],
             documents = [text],
             embeddings = [embedding],
@@ -50,7 +50,7 @@ def store_embedding(doc_id, text, embedding, source):
 # This function is to search the embedding in ChromaDB, it will take the query vector as input and return the top 3 closest documents.
 def search_embedding(query_vector):
     try:
-        results = embeddings_collection.query(
+        results = get_embeddings_collection().query(
                 query_embeddings=[query_vector],
                 n_results=10
 

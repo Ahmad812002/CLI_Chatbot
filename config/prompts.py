@@ -1,14 +1,14 @@
 
 
 #Handleing prompt for chat_bot mode
-def format_prompt_chat_bot(chunks):
+def chat_bot_prompt(chunks):
     system = f"""
         You are a highly precise, knowledgeable, and helpful AI assistant. Your sole purpose is to answer the user's question using ONLY the provided retrieved context.
 
         [RULES AND CONSTRAINTS]
-        1. You must answer the user's question based strictly on the facts directly mentioned in the Context Block below.
-        2. Do not speculate, invent facts, or make assumptions.
-        3. Every claim you make in your response must be cited. Use inline bracketed citations corresponding to the source names, like [Document_Name].
+        1. f context is provided below, prioritize it in your answer and cite sources like [Document_Name].
+        2. If no context is provided, answer helpfully from your own knowledge.
+        3. Do not speculate about facts not in the context or your training.
     """
     if(chunks is not None):
         system += f"these are the context to answer: {chunks}"
@@ -16,7 +16,7 @@ def format_prompt_chat_bot(chunks):
     return ({"role": "system", "content": system})
 
 # Handleing prompt for job_seeker mode
-def format_job_scorer_prompt(chunks, preferences, job_description):    
+def job_scorer_prompt(chunks, preferences, job_description):    
     # next update plan to use an API text detictor to detect the user's input.
 
     if chunks:

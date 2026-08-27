@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <h1>Job Seeker AI</h1>
+  
+  <textarea id="job_desc" placeholder="Paste job description here..."></textarea>
+  <button onclick="scoreJob()">Score Job</button>
+  
+  <div id="result"></div>
+
+  <script>
+    async function scoreJob() {
+      const job_description = document.getElementById('job_desc').value
+      const response = await fetch('http://127.0.0.1:8000/scorer', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ job_description })
+      })
+      const data = await response.json()
+      document.getElementById('result').innerText = JSON.stringify(data, null, 2)
+    }
+
+    async function coverLetter() {
+      const cover_letter_button = document.getElementById('cover-letter-button')
+      const response = await fetch('http://127.0.0.1:8000/cover_letter', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ job_description: document.getElementById('job_desc').value })
+      })
+      const data = await response.json()
+      document.getElementById('result').innerText = JSON.stringify(data, null, 2)
+    }
+  </script>
+
+  <button id="cover-letter-button" onclick="coverLetter()">Generate Cover Letter</button>
+</body>
+</html>

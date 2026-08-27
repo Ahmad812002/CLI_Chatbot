@@ -1,12 +1,13 @@
 import docx
 import PyPDF2
 from data_access.embeddings import chunk_text, store_embedding, get_embedding
-from data_access.db import embeddings_collection
+from data_access.db import get_embeddings_collection
 
 
 # reading four types of ducments 
 def read_document(document):
     try:
+        
         # Plain string passed directly.
         if not document.endswith(('.pdf', '.txt', '.docx', '.md')):
             return document.strip()  # If it's not a file, treat it as raw text and return it.
@@ -45,11 +46,12 @@ def read_document(document):
         return None
 
 # Handleing document, chunk it into smaller pieces, get the embedding of each chunk and store the embedding in the database.
-def process_document(user_input, doc_id):
+def add_embedding(user_input, doc_id):
     try:
         document = read_document(user_input)
         text_chunks = chunk_text(document)
-        ids = embeddings_collection.get()["ids"]
+
+        ids = get_embeddings_collection().get()["ids"]
 
         doc_id = str(max(int(i) for i in ids) + 1)
         
