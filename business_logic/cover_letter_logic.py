@@ -1,24 +1,35 @@
 import json
-from llm import llm_cover_letter
 
+from config.prompts import cover_letter_prompt
+from .llm import llm_cover_letter
 
+def run_cover_letter(profile_chunks, job_description, matching_points =[], gaps =[], reasoning = ""):
+    try:
 
-def run_cover_letter(profile_chunks, job_description, job_scorer_result):
-    response = llm_cover_letter(profile_chunks, job_description, job_scorer_result)
+        formated_prompt = cover_letter_prompt(
+            profile_chunks, 
+            job_description,
+            matching_points,
+            gaps,
+            reasoning
+        )
+        response = llm_cover_letter(formated_prompt)
 
-    formated_response = format_cover_letter_json(response)
-    return {
-        "Cover Letter: ": formated_response
-    }
+        formated_response = format_cover_letter_json(response)
+        if(formated_response['opening'] is not None):
+            return {
+                        "opening": formated_response['opening'],
+                        "middle": formated_response['middle'],
+                        "gap": formated_response['gap'],
+                        "closing": formated_response['closing']
+                    }
+    except Exception as e:
+        raise ValueError(f"Error occurred while generating cover letter: {str(e)}")
 
 # Fromating ai json response to be more readable 
 def format_cover_letter_json(ai_reply):
     try:
         result = json.loads(ai_reply)
-        # print(f"\nCover Letter: \n\n{result['opening']}")
-        # print(f"\n{result['middle']}\n")
-        # print(f"{result['gap']}\n")
-        # print(f"{result['closing']}\n")
         return {
             "opening": result['opening'],
             "middle": result['middle'],
@@ -26,8 +37,4 @@ def format_cover_letter_json(ai_reply):
             "closing": result['closing']
         }
     except json.JSONDecodeError:
-        # print(ai_reply) # fallback if LLM doesn't return valid Json
-        return {
-            "error": "Invalid JSON response from LLM",
-            "raw_response": ai_reply
-        }
+            raise ValueError(f"LLM returned invalid JSON: {ai_reply[:10]}")

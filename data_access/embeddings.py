@@ -1,3 +1,5 @@
+from fastapi import HTTPException
+from fastapi.responses import JSONResponse
 from nomic import embed
 import numpy as np
 from dotenv import load_dotenv
@@ -16,7 +18,7 @@ def chunk_text(text):
         for i in range(0, len(text), chunk_size - overlap_size): # Move back by overlap_size to create overlap
             chunks.append(text[i:i+chunk_size])
     except Exception as e:
-        print(f"Error occurred while chunking text: {e}")
+        raise HTTPException(status_code=500, detail=f"Error occurred while chunking text: {e}")
     return chunks 
 
 # This function is to get the embedding of a given text, it will return the embedding vector.
@@ -30,8 +32,7 @@ def get_embedding(text):
         embeddings = np.array(response['embeddings'][0])
         return embeddings
     except Exception as e:
-        print(f"Error occurred while generating embedding: {e}")
-        return None
+        raise HTTPException(status_code=500, detail=f"Error occurred while generating embedding: {e}")
 # This function is to store the embedding in ChromaDB, it will take the document id, text and embedding vector as input and store it in the collection.
 def store_embedding(doc_id, text, embedding, source):
     
@@ -42,11 +43,9 @@ def store_embedding(doc_id, text, embedding, source):
             embeddings = [embedding],
             metadatas = [{"source": source}]
         )
-        print("Document ingested successfully!")
-        return True
+        return JSONResponse(status_code=201, content={"message": "Document ingested successfully!"})
     except Exception as e:
-        print(f"Error occurred while storing embedding: {e}")
-        return False
+        raise HTTPException(status_code=500, detail=f"Error occurred while storing embedding: {str(e)}")
 # This function is to search the embedding in ChromaDB, it will take the query vector as input and return the top 3 closest documents.
 def search_embedding(query_vector):
     try:
@@ -56,8 +55,7 @@ def search_embedding(query_vector):
 
             )
     except Exception as e:
-        print(f"Error occurred while searching embedding: {e}")
-        return None
+        raise HTTPException(status_code=500, detail=f"Error occurred while searching embedding: {str(e)}")
 
     # Threshold filtering by similarity score (e.g., 0.7)
     threshold = 0.65
@@ -65,7 +63,7 @@ def search_embedding(query_vector):
     try: 
         for index, distance in enumerate(results['distances'][0]):
             # How far are they from each other? (lower is closer)
-            print(results['distances'][0][index])
+            # print(results['distances'][0][index])
             if(distance <= threshold):
                 # Convert passing chunks into a list
                 chunks.append({
@@ -75,13 +73,7 @@ def search_embedding(query_vector):
                 })
             else:
                 pass
-    except Exception as e:
-        print(f"Error occurred while processing search results: {e}")
-    if chunks == None:
-        print("There is no similar document found in the database.")
-        return None
-    else:
-        print(f"Found {len(chunks)} similar documents in the database.")
-        print(f"Chunks: {chunks}")
         return chunks
-
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error occurred while filtering chunks: {str(e)}")

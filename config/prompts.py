@@ -28,7 +28,7 @@ def job_scorer_prompt(chunks, preferences, job_description):
         Job description: {job_description}.
 
         {candidate_section}.
-
+        
         User's preferences: {preferences}.
 
         
@@ -60,45 +60,82 @@ def job_scorer_prompt(chunks, preferences, job_description):
     return ({"role": "system", "content": system_content})
 
 # Handling cover letter prompt
-def cover_letter_prompt_format(profile_candidate, job_description, job_scorer_result):
+def cover_letter_prompt(profile_candidate, job_description, matching_points, gaps, reasoning):
 
-    system = f"""
-        You are a cover letter generator.
+    if(matching_points is None or gaps is None or reasoning is None):
+        system = system = f"""
+                You are a cover letter generator.
+        
+                {{
+                    You will receive profile user: {profile_candidate}, 
+                    and job description: {job_description}.
+                }}
+        
+                All these instructions must be followed by User's profile and job description to generate a cover letter:
+                - opening: Introduce who the user is, what position they are applying for, and why genuinely interested
+                - middle: Use the profile candidate to explain what the user brings to this role
+                - gap: Use some gaps that the user has identified to show honest acknowledgment and growth mindset
+                - closing: write a confident call to action
+        
+                Respond only with this JSON structure filled with the actual cover letter paragraphs:
+                {{
+                    "opening": "<paragraph>",
+                    "middle": "<paragraph>",
+                    "gap": "<paragraph>",
+                    "closing": "<paragraph>"
+                }}
+        
+                Rules:
+                - Critical: Only mention skills, technologies, and tools that are explicitly listed in the profile candidate. Never infer, assume, or add adjacent technologies even if they are commonly associated with a listed skill.
+                - Do not start with generic phrases like "I am writing to apply for"
+                - Start the opening with something specific about the user or the role
+                - The total cover letter must not exceed 500 words.
+                - Each paragraph should be 3 to 6 sentences maximum. 
+                - Tone structure: professional, confident, and honest tone
+                - If you don't have enough information how the user solving the gaps, 
+                    just write a willing to learn and mention a project that the user has already worked on, 
+                    make sure the project details are worked on by the user and is not mentioned in the above cover letter.
+            """
+        
+        return ({"role": "system", "content": system})
+    else:
+        system = f"""
+            You are a cover letter generator.
 
-        {{
-            You will receive profile user: {profile_candidate}, and job description: {job_description}.
-            These information are about job scorer results: 
-            matching points: {job_scorer_result[1]}, 
-            gaps: {job_scorer_result[2]}, 
-            reasoning: {job_scorer_result[3]}
-        }}
+            {{
+                You will receive profile user: {profile_candidate}, and job description: {job_description}.
+                These information are about job scorer results: 
+                matching points: {matching_points}, 
+                gaps: {gaps}, 
+                reasoning: {reasoning}
+            }}
 
-        Instructions:
-        - opening: Introduce who the user is, what position they are applying for, and why genuinely interested
-        - middle: Use the matching points to explain what the user brings to this role
-        - gap: Use the gaps to show honest acknowledgment and growth mindset
-        - closing: Use the reasoning to write a confident call to action
+            Instructions:
+            - opening: Introduce who the user is, what position they are applying for, and why genuinely interested
+            - middle: Use the matching points to explain what the user brings to this role
+            - gap: Use the gaps to show honest acknowledgment and growth mindset
+            - closing: Use the reasoning to write a confident call to action
 
-        Respond only with this JSON structure filled with the actual cover letter paragraphs:
-        {{
-            "opening": "<paragraph>",
-            "middle": "<paragraph>",
-            "gap": "<paragraph>",
-            "closing": "<paragraph>"
-        }}
+            Respond only with this JSON structure filled with the actual cover letter paragraphs:
+            {{
+                "opening": "<paragraph>",
+                "middle": "<paragraph>",
+                "gap": "<paragraph>",
+                "closing": "<paragraph>"
+            }}
 
-        Rules:
-        - Critical: Only mention skills, technologies, and tools that are explicitly listed in the profile candidate. Never infer, assume, or add adjacent technologies even if they are commonly associated with a listed skill.
-        - Do not start with generic phrases like "I am writing to apply for"
-        - Start the opening with something specific about the user or the role
-        - The total cover letter must not exceed 500 words.
-        - Each paragraph should be 2 to 5 sentences maximum. 
-        - Tone structure: professional, confident, and honest tone
-        - If you don't have enough information how the user solving the gaps, 
-            just write a willing to learn and mention a project that the user has already worked on, 
-            make sure the project details are worked on by the user and is not mentioned in the above cover letter.
-    """
+            Rules:
+            - Critical: Only mention skills, technologies, and tools that are explicitly listed in the profile candidate. Never infer, assume, or add adjacent technologies even if they are commonly associated with a listed skill.
+            - Do not start with generic phrases like "I am writing to apply for"
+            - Start the opening with something specific about the user or the role
+            - The total cover letter must not exceed 500 words.
+            - Each paragraph should be 3 to 6 sentences maximum. 
+            - Tone structure: professional, confident, and honest tone
+            - If you don't have enough information how the user solving the gaps, 
+                just write a willing to learn and mention a project that the user has already worked on, 
+                make sure the project details are worked on by the user and is not mentioned in the above cover letter.
+            """
 
-    return ({"role": "system", "content": system})
+        return ({"role": "system", "content": system})
 
 

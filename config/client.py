@@ -17,4 +17,3 @@ def initialize_client():
     nomic.login(token=os.environ.get("NOMIC_API_KEY"))
 
     return client
-

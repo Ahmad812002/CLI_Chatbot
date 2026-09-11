@@ -1,3 +1,5 @@
+from http.client import HTTPException
+
 import chromadb
 import os
 
@@ -10,14 +12,13 @@ try:
         api_key=os.getenv('CHROMA_API_KEY')
     )
 except Exception as e:
-    print(f"Error occurred while connecting to ChromaDB: {e}")
+    raise HTTPException(status_code=500, detail="Database connection failed")
 
 def get_preferences_collection():
     try:
         return chroma_client.get_collection(name="preferences")
     except Exception as e:
-        print(f"Error occurred while retrieving preferences records: {e}")
-        return None
+        raise HTTPException(status_code=500, detail=f"Server error occurred while retrieving preferences records: {str(e)}")
 
 
 def update_preferences_record(record_id, new_preferences):
@@ -27,13 +28,12 @@ def update_preferences_record(record_id, new_preferences):
             documents=[new_preferences]
         )
     except Exception as e:
-        print(f"Error occurred while updating preferences record: {e}")
+        raise HTTPException(status_code=500, detail=f"Server error occurred while updating preferences record: {str(e)}")
 
 
 def get_embeddings_collection():
     try:
         return chroma_client.get_collection(name="embeddings")
     except Exception as e:
-        print(f"Error occurred while retrieving document records: {e}")
-        return None
+        raise HTTPException(status_code=500, detail=f"Server error occurred while retrieving document records: {str(e)}")
 
